@@ -1,0 +1,21 @@
+# Secrets / local config — NEVER commit
+.env
+
+# SQLite database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploaded files (Phase 4)
+uploads/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Test / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
