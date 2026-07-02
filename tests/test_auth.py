@@ -2,19 +2,9 @@
 
 from app.routes.auth import INVALID_CREDENTIALS_MESSAGE
 
-
-def test_login_page_renders_through_jinja(client):
-    r = client.get("/login")
-    assert r.status_code == 200
-    body = r.text
-    # The real Chinese UI strings must be present...
-    assert "登录" in body
-    assert "邮箱" in body
-    assert "密码" in body
-    # ...and raw Jinja markup must NEVER leak to the client (the bug where the
-    # template was served as literal text instead of rendered).
-    assert "{{" not in body
-    assert "{%" not in body
+# NOTE: the "does every GET HTML page render through Jinja (no raw markup leak)"
+# guard lives in tests/test_rendering.py, which enumerates ALL such pages. The
+# old login-only render test was replaced by it.
 
 
 def test_failed_login_renders_generic_error_in_html(client, users, login):
