@@ -16,7 +16,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import Settings, load_settings
 from app.db import init_db, make_engine, make_session_factory
-from app.routes import auth
+from app.routes import auth, projects
 
 
 def create_app(
@@ -45,4 +45,5 @@ def create_app(
     )
 
     app.include_router(auth.router)
+    app.include_router(projects.router)
     return app

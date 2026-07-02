@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ project.title }} · 学生项目管理系统</title>
+</head>
+<body>
+  <p><a href="/projects">← 返回项目列表</a></p>
+
+  <main>
+    <h1>{{ project.title }}</h1>
+    <p>状态：
+      {% if project.status == "draft" %}草稿{% elif project.status == "open" %}开放{% else %}已关闭{% endif %}
+    </p>
+    {% if project.max_teams is not none %}
+    <p>最大队伍数：{{ project.max_teams }}</p>
+    {% endif %}
+    {% if project.opens_at %}<p>开放时间：{{ project.opens_at }}</p>{% endif %}
+    {% if project.closes_at %}<p>关闭时间：{{ project.closes_at }}</p>{% endif %}
+
+    <section>
+      <h2>项目描述</h2>
+      <p>{{ project.description or "（无描述）" }}</p>
+    </section>
+
+    {% if is_owner %}
+    <section>
+      <h2>操作</h2>
+      {% if project.status == "draft" %}
+      <form method="post" action="/projects/{{ project.id }}/open">
+        <button type="submit">开放项目</button>
+      </form>
+      {% elif project.status == "open" %}
+      <form method="post" action="/projects/{{ project.id }}/close">
+        <button type="submit">关闭项目</button>
+      </form>
+      {% else %}
+      <p>项目已关闭。</p>
+      {% endif %}
+    </section>
+    {% endif %}
+  </main>
+</body>
+</html>

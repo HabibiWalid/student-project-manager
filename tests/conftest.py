@@ -15,12 +15,13 @@ os.environ.setdefault("SESSION_SECRET", "test-secret-value-that-is-long-enough-1
 import pytest
 from fastapi import Depends
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from app import security
 from app.db import init_db, make_engine, make_session_factory
 from app.deps import require_teacher
 from app.main import create_app
-from app.models import ROLE_STUDENT, ROLE_TEACHER, User
+from app.models import ROLE_STUDENT, ROLE_TEACHER, STATUS_DRAFT, Project, User
 
 TEACHER = {
     "email": "teacher@example.com",
@@ -68,17 +69,63 @@ def users(session_factory):
     return {"teacher": TEACHER, "student": STUDENT}
 
 
-@pytest.fixture
-def client(session_factory):
-    app = create_app(session_factory=session_factory)
+def user_id(session_factory, email: str) -> int:
+    db = session_factory()
+    try:
+        return db.execute(
+            select(User.id).where(User.email == email.strip().lower())
+        ).scalar_one()
+    finally:
+        db.close()
 
-    # Test-only probe route exercising the real teacher gate. The first *real*
-    # teacher route arrives in Phase 2 and is guarded by this same dependency.
-    @app.get("/__probe/teacher")
+
+def create_project(
+    session_factory,
+    *,
+    teacher_id: int,
+    title: str,
+    status: str = STATUS_DRAFT,
+    description: str = "",
+    max_teams: int | None = None,
+) -> int:
+    db = session_factory()
+    try:
+        p = Project(
+            teacher_id=teacher_id,
+            title=title,
+            status=status,
+            description=description,
+            max_teams=max_teams,
+        )
+        db.add(p)
+        db.commit()
+        return p.id
+    finally:
+        db.close()
+
+
+@pytest.fixture
+def app(session_factory):
+    application = create_app(session_factory=session_factory)
+
+    # Test-only probe route exercising the real teacher gate directly.
+    @application.get("/__probe/teacher")
     def _teacher_probe(user: User = Depends(require_teacher)):
         return {"email": user.email}
 
-    return TestClient(app)
+    return application
+
+
+@pytest.fixture
+def make_client(app):
+    """Return a factory for independent clients (separate cookie jars) sharing
+    the same app + DB — so one test can drive a teacher and a student at once."""
+    return lambda: TestClient(app)
+
+
+@pytest.fixture
+def client(make_client):
+    return make_client()
 
 
 @pytest.fixture
@@ -91,3 +138,17 @@ def login():
         )
 
     return _login
+
+
+@pytest.fixture
+def teacher_client(make_client, users, login):
+    c = make_client()
+    login(c, TEACHER["email"], TEACHER["password"])
+    return c
+
+
+@pytest.fixture
+def student_client(make_client, users, login):
+    c = make_client()
+    login(c, STUDENT["email"], STUDENT["password"])
+    return c

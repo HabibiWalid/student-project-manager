@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>项目列表 · 学生项目管理系统</title>
+</head>
+<body>
+  <header>
+    <h1>项目列表</h1>
+    <p>你好，{{ user.name }}（{{ "教师" if user.role == "teacher" else "学生" }}）</p>
+    {% if user.role == "teacher" %}
+    <p><a href="/projects/new">新建项目</a></p>
+    {% endif %}
+    <form method="post" action="/logout"><button type="submit">退出登录</button></form>
+  </header>
+
+  <main>
+    {% if projects %}
+    <ul>
+      {% for p in projects %}
+      <li>
+        <a href="/projects/{{ p.id }}">{{ p.title }}</a>
+        —
+        {% if p.status == "draft" %}草稿{% elif p.status == "open" %}开放{% else %}已关闭{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>暂无项目。</p>
+    {% endif %}
+  </main>
+</body>
+</html>
