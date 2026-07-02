@@ -20,7 +20,16 @@ from app.deps import (
     require_student,
     require_student_for_write,
 )
-from app.models import STATUS_OPEN, Project, Team, TeamMember, User
+from app.models import (
+    ROLE_TEACHER,
+    STATUS_OPEN,
+    Project,
+    Submission,
+    SubmissionFile,
+    Team,
+    TeamMember,
+    User,
+)
 from app.teams import REASON_NOT_FOUND, ClaimError
 from app.templating import templates
 
@@ -137,7 +146,7 @@ def team_detail(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     # Any authenticated user may view a team roster (name + members). The
-    # stricter members-or-teacher gate applies to submissions/files in Phase 4.
+    # stricter members-or-teacher gate applies to submissions/files.
     project = db.get(Project, team.project_id)
     members = (
         db.execute(
@@ -149,8 +158,42 @@ def team_detail(
         .scalars()
         .all()
     )
+
+    is_teacher = user.role == ROLE_TEACHER
+    is_member = any(m.id == user.id for m in members)
+    can_see_submissions = is_teacher or is_member
+    submissions = []
+    if can_see_submissions:
+        subs = (
+            db.execute(
+                select(Submission)
+                .where(Submission.team_id == team_id)
+                .order_by(Submission.submitted_at.desc())
+            )
+            .scalars()
+            .all()
+        )
+        for s in subs:
+            files = (
+                db.execute(
+                    select(SubmissionFile).where(
+                        SubmissionFile.submission_id == s.id
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            submissions.append({"submission": s, "files": files})
+
     return templates.TemplateResponse(
         request,
         "team_detail.html",
-        {"team": team, "project": project, "members": members},
+        {
+            "team": team,
+            "project": project,
+            "members": members,
+            "is_member": is_member,
+            "can_see_submissions": can_see_submissions,
+            "submissions": submissions,
+        },
     )

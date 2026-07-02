@@ -39,6 +39,7 @@ def html_pages():
         _page("project-detail draft (owner teacher)", "teacher", "/projects/{draft_id}"),
         _page("create-team form (student)", "student", "/projects/{open_id}/teams/new"),
         _page("team-detail (teacher)", "teacher", "/teams/{team_id}"),
+        _page("submission form (member student)", "student", "/teams/{team_id}/submissions/new"),
     ]
 
 

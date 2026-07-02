@@ -27,6 +27,8 @@ STATUS_OPEN = "open"
 STATUS_CLOSED = "closed"
 PROJECT_STATUSES = (STATUS_DRAFT, STATUS_OPEN, STATUS_CLOSED)
 
+SUBMISSION_SUBMITTED = "submitted"
+
 # Allowed one-way status transitions. Anything not listed is rejected.
 ALLOWED_STATUS_TRANSITIONS = {
     STATUS_DRAFT: {STATUS_OPEN},
@@ -138,5 +140,49 @@ class TeamMember(Base):
         ForeignKey("projects.id"), nullable=False, index=True
     )
     joined_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class Submission(Base):
+    __tablename__ = "submissions"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('submitted')", name="ck_submissions_status_valid"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    team_id: Mapped[int] = mapped_column(
+        ForeignKey("teams.id"), nullable=False, index=True
+    )
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey("projects.id"), nullable=False, index=True
+    )
+    note: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default=SUBMISSION_SUBMITTED
+    )
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class SubmissionFile(Base):
+    __tablename__ = "submission_files"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    submission_id: Mapped[int] = mapped_column(
+        ForeignKey("submissions.id"), nullable=False, index=True
+    )
+    # stored_name is a server-generated uuid filename; the on-disk path is
+    # ALWAYS upload_dir/stored_name and is NEVER built from user input.
+    stored_name: Mapped[str] = mapped_column(String(80), nullable=False)
+    # original_name is an untrusted display label only (sanitized on the way in).
+    original_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    mime: Mapped[str] = mapped_column(String(120), nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

@@ -17,6 +17,7 @@ MIN_SECRET_LEN = 32
 
 DEFAULT_DATABASE_URL = "sqlite:///./app.db"
 DEFAULT_SESSION_COOKIE_NAME = "spm_session"
+DEFAULT_UPLOAD_DIR = "./uploads"
 
 
 class ConfigError(RuntimeError):
@@ -29,6 +30,7 @@ class Settings:
     database_url: str
     session_cookie_secure: bool
     session_cookie_name: str
+    upload_dir: str
 
 
 def _as_bool(raw: str | None, *, default: bool) -> bool:
@@ -60,4 +62,5 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         ),
         session_cookie_name=env.get("SESSION_COOKIE_NAME")
         or DEFAULT_SESSION_COOKIE_NAME,
+        upload_dir=env.get("UPLOAD_DIR") or DEFAULT_UPLOAD_DIR,
     )

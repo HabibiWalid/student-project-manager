@@ -26,6 +26,8 @@ from app.models import (
     ROLE_TEACHER,
     STATUS_DRAFT,
     Project,
+    Submission,
+    SubmissionFile,
     Team,
     TeamMember,
     User,
@@ -56,12 +58,18 @@ def _db(tmp_path):
     return {
         "session_factory": make_session_factory(engine),
         "claim_session_factory": make_session_factory(claim_engine),
+        "upload_dir": tmp_path / "uploads",
     }
 
 
 @pytest.fixture
 def session_factory(_db):
     return _db["session_factory"]
+
+
+@pytest.fixture
+def upload_dir(_db):
+    return _db["upload_dir"]
 
 
 @pytest.fixture
@@ -169,11 +177,53 @@ def create_team(
         db.close()
 
 
+def write_submission_file(
+    session_factory,
+    upload_dir,
+    *,
+    team_id: int,
+    project_id: int,
+    original_name: str,
+    content: bytes,
+    note: str = "",
+) -> int:
+    """Seed a Submission + one SubmissionFile with a real on-disk file. Returns
+    the SubmissionFile id. Used for download / header-injection tests."""
+    from uuid import uuid4
+
+    stored_name = uuid4().hex + ".bin"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    (upload_dir / stored_name).write_bytes(content)
+    db = session_factory()
+    try:
+        sub = Submission(
+            team_id=team_id, project_id=project_id, note=note, status="submitted"
+        )
+        db.add(sub)
+        db.flush()
+        sf = SubmissionFile(
+            submission_id=sub.id,
+            stored_name=stored_name,
+            original_name=original_name,
+            size_bytes=len(content),
+            mime="application/octet-stream",
+            sha256="0" * 64,
+        )
+        db.add(sf)
+        db.flush()
+        file_id = sf.id
+        db.commit()
+        return file_id
+    finally:
+        db.close()
+
+
 @pytest.fixture
 def app(_db):
     application = create_app(
         session_factory=_db["session_factory"],
         claim_session_factory=_db["claim_session_factory"],
+        upload_dir=str(_db["upload_dir"]),
     )
 
     # Test-only probe route exercising the real teacher gate directly.

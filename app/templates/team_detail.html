@@ -20,6 +20,31 @@
         {% endfor %}
       </ul>
     </section>
+
+    {% if can_see_submissions %}
+    <section>
+      <h2>成果提交</h2>
+      {% if is_member %}
+      <p><a href="/teams/{{ team.id }}/submissions/new">提交成果</a></p>
+      {% endif %}
+      {% if submissions %}
+      <ul>
+        {% for s in submissions %}
+        <li>
+          <p>{{ s.submission.note or "（无说明）" }}</p>
+          <ul>
+            {% for f in s.files %}
+            <li><a href="/files/{{ f.id }}">{{ f.original_name }}</a>（{{ f.size_bytes }} 字节）</li>
+            {% endfor %}
+          </ul>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p>暂无提交。</p>
+      {% endif %}
+    </section>
+    {% endif %}
   </main>
 </body>
 </html>

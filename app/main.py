@@ -14,19 +14,24 @@ DB without creating the production database file. There are two:
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from sqlalchemy.orm import Session, sessionmaker
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import Settings, load_settings
 from app.db import init_db, make_engine, make_session_factory
-from app.routes import auth, projects, teams
+from app.middleware import LimitUploadBodyMiddleware
+from app.routes import auth, projects, submissions, teams
+from app.uploads import MAX_REQUEST_BYTES
 
 
 def create_app(
     settings: Settings | None = None,
     session_factory: "sessionmaker[Session] | None" = None,
     claim_session_factory: "sessionmaker[Session] | None" = None,
+    upload_dir: str | None = None,
 ) -> FastAPI:
     settings = settings or load_settings()
 
@@ -61,6 +66,12 @@ def create_app(
     app.state.claim_session_factory = claim_session_factory
     app.state.settings = settings
 
+    # Upload storage: a non-served directory (never a StaticFiles mount). Created
+    # at startup. The total-request-body cap is read from here at request time.
+    app.state.upload_dir = Path(upload_dir or settings.upload_dir)
+    app.state.upload_dir.mkdir(parents=True, exist_ok=True)
+    app.state.max_request_bytes = MAX_REQUEST_BYTES
+
     # Signed, httponly (always, in Starlette), samesite=lax cookie. Marked
     # Secure in production via SESSION_COOKIE_SECURE.
     app.add_middleware(
@@ -71,7 +82,12 @@ def create_app(
         https_only=settings.session_cookie_secure,
     )
 
+    # Outermost middleware (added last): cap the upload request body before the
+    # multipart parser can buffer it.
+    app.add_middleware(LimitUploadBodyMiddleware)
+
     app.include_router(auth.router)
     app.include_router(projects.router)
     app.include_router(teams.router)
+    app.include_router(submissions.router)
     return app

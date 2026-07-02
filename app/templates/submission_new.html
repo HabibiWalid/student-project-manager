@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>提交成果 · {{ team.name }}</title>
+</head>
+<body>
+  <p><a href="/teams/{{ team.id }}">← 返回队伍</a></p>
+
+  <main>
+    <h1>提交成果</h1>
+    <p>队伍：{{ team.name }}</p>
+    {% if error %}
+    <p role="alert">{{ error }}</p>
+    {% endif %}
+    <form method="post" action="/teams/{{ team.id }}/submissions" enctype="multipart/form-data">
+      <label>说明<textarea name="note" maxlength="5000"></textarea></label>
+      <label>文件（可多选，支持 pdf/zip/docx/png/jpg，单个不超过 20MB）
+        <input type="file" name="files" multiple required>
+      </label>
+      <button type="submit">提交</button>
+    </form>
+  </main>
+</body>
+</html>
