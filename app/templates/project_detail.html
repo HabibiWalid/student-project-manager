@@ -40,6 +40,29 @@
       {% endif %}
     </section>
     {% endif %}
+
+    <section>
+      <h2>队伍</h2>
+      {% if can_claim %}
+      <p><a href="/projects/{{ project.id }}/teams/new">创建队伍并认领</a></p>
+      {% endif %}
+      {% if teams %}
+      <ul>
+        {% for t in teams %}
+        <li>
+          <a href="/teams/{{ t.id }}">{{ t.name }}</a>
+          {% if is_student and project.status == "open" %}
+          <form method="post" action="/teams/{{ t.id }}/join" style="display:inline">
+            <button type="submit">加入</button>
+          </form>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p>暂无队伍。</p>
+      {% endif %}
+    </section>
   </main>
 </body>
 </html>

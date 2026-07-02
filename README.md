@@ -4,12 +4,31 @@ A server-rendered FastAPI web app for a teacher managing student project teams.
 UI strings are in 简体中文. See [PROJECT_BRIEF.md](PROJECT_BRIEF.md) for the full
 spec and phased build plan.
 
-**Status:** Phases 1–2 complete.
+**Status:** Phases 1–3 complete.
 - **Phase 1 (Foundation):** config, DB models, argon2 auth, signed session
   cookie, server-side role gating. Login works.
 - **Phase 2 (Projects):** teachers create projects (draft→open→closed) and
   manage only their own; students browse/view only open projects; drafts are
   not disclosed to students. `/` bounces to the projects list or login.
+- **Phase 3 (Teams & claiming):** students form a team on an open project (the
+  claim), others join. The claim race is settled at the DB level by
+  `UNIQUE(project_id, slot_no)` (backstop, backend-agnostic) plus a
+  BEGIN-IMMEDIATE claim transaction on SQLite / `SELECT … FOR UPDATE` on
+  Postgres. Guards: claim only while `open` and within `opens_at/closes_at`,
+  `max_teams` respected, one team per project per user, no double-join. A DB
+  lock timeout surfaces as 503, never a 500.
+
+### Concurrency note
+
+`slot_no` is a per-project, monotonic (`MAX+1`), never-reused claim token; team
+capacity is enforced separately by `COUNT < max_teams`. This is safe under the
+MVP (no team deletion). If a delete/re-add feature is ever added, the scheme
+stays collision-free (`MAX+1` is always greater than every surviving row), but
+revisit the comment on `Team.slot_no` in `app/models.py`.
+
+The threaded tests prove the invariant on **SQLite**; the `UNIQUE(project_id,
+slot_no)` constraint is what carries it to **Postgres** (the Postgres path is not
+tested here).
 
 ## Stack
 
@@ -74,7 +93,7 @@ Then open http://127.0.0.1:8000/login and log in with a seeded account.
 pytest
 ```
 
-The suite (43 tests) covers:
+The suite (69 tests) covers:
 
 - **Phase 1 (25):** config fail-fast, password hashing & `verify` fail-closed
   behavior, `authenticate()` (success / wrong password / unknown email / email
@@ -87,3 +106,9 @@ The suite (43 tests) covers:
   transitions (draft→open→closed; invalid → 409), ownership enforcement
   (non-owner teacher → 403), and status-based visibility (students see only open
   projects; drafts return 404).
+- **Phase 3 (19 + 2 render-guard pages):** claim happy-path + leader auto-join;
+  role/auth gates (teacher→403, anon→401); guards for draft/closed/out-of-window
+  /full/duplicate-name/missing (409/404) and empty name (400); join, double-join
+  and second-team-per-project blocks; a DB-lock-timeout→503 mapping; and three
+  real-thread tests — two service-level claim races (exactly one wins, capacity
+  never exceeded) and one HTTP-contention test asserting no 500 escapes.

@@ -18,11 +18,13 @@ from sqlalchemy.orm import Session
 from app.deps import current_user, get_db, require_teacher
 from app.models import (
     ALLOWED_STATUS_TRANSITIONS,
+    ROLE_STUDENT,
     ROLE_TEACHER,
     STATUS_CLOSED,
     STATUS_DRAFT,
     STATUS_OPEN,
     Project,
+    Team,
     User,
 )
 from app.schemas import ProjectCreate
@@ -134,10 +136,26 @@ def project_detail(
     # student cannot probe for the existence of drafts.
     if project is None or not _can_view(user, project):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    teams = (
+        db.execute(
+            select(Team).where(Team.project_id == project_id).order_by(Team.slot_no)
+        )
+        .scalars()
+        .all()
+    )
+    is_student = user.role == ROLE_STUDENT
     return templates.TemplateResponse(
         request,
         "project_detail.html",
-        {"project": project, "user": user, "is_owner": _is_owner(user, project)},
+        {
+            "project": project,
+            "user": user,
+            "is_owner": _is_owner(user, project),
+            "teams": teams,
+            "is_student": is_student,
+            "can_claim": is_student and project.status == STATUS_OPEN,
+        },
     )
 
 

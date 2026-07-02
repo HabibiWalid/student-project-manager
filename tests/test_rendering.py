@@ -15,7 +15,13 @@ from __future__ import annotations
 import pytest
 
 from app.models import STATUS_DRAFT, STATUS_OPEN
-from tests.conftest import STUDENT, TEACHER, create_project, user_id
+from tests.conftest import (
+    STUDENT,
+    TEACHER,
+    create_project,
+    create_team,
+    user_id,
+)
 
 
 def _page(desc, role, path):
@@ -31,6 +37,8 @@ def html_pages():
         _page("create-project form (teacher)", "teacher", "/projects/new"),
         _page("project-detail open (student)", "student", "/projects/{open_id}"),
         _page("project-detail draft (owner teacher)", "teacher", "/projects/{draft_id}"),
+        _page("create-team form (student)", "student", "/projects/{open_id}/teams/new"),
+        _page("team-detail (teacher)", "teacher", "/teams/{team_id}"),
     ]
 
 
@@ -38,12 +46,17 @@ def html_pages():
 def rendered_ctx(session_factory, make_client, users, login):
     """Data + logged-in clients shared by the enumeration."""
     tid = user_id(session_factory, TEACHER["email"])
+    sid = user_id(session_factory, STUDENT["email"])
+    open_id = create_project(
+        session_factory, teacher_id=tid, title="渲染开放项目", status=STATUS_OPEN
+    )
     ids = {
-        "open_id": create_project(
-            session_factory, teacher_id=tid, title="渲染开放项目", status=STATUS_OPEN
-        ),
+        "open_id": open_id,
         "draft_id": create_project(
             session_factory, teacher_id=tid, title="渲染草稿项目", status=STATUS_DRAFT
+        ),
+        "team_id": create_team(
+            session_factory, project_id=open_id, name="渲染队伍", leader_id=sid
         ),
     }
 

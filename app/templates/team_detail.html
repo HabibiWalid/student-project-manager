@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ team.name }} · 队伍详情</title>
+</head>
+<body>
+  <p><a href="/projects/{{ team.project_id }}">← 返回项目</a></p>
+
+  <main>
+    <h1>队伍：{{ team.name }}</h1>
+    <p>所属项目：{{ project.title }}</p>
+
+    <section>
+      <h2>成员（{{ members | length }}）</h2>
+      <ul>
+        {% for m in members %}
+        <li>{{ m.name }}{% if m.id == team.leader_id %}（队长）{% endif %}</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

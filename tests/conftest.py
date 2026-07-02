@@ -21,7 +21,15 @@ from app import security
 from app.db import init_db, make_engine, make_session_factory
 from app.deps import require_teacher
 from app.main import create_app
-from app.models import ROLE_STUDENT, ROLE_TEACHER, STATUS_DRAFT, Project, User
+from app.models import (
+    ROLE_STUDENT,
+    ROLE_TEACHER,
+    STATUS_DRAFT,
+    Project,
+    Team,
+    TeamMember,
+    User,
+)
 
 TEACHER = {
     "email": "teacher@example.com",
@@ -38,11 +46,27 @@ STUDENT = {
 
 
 @pytest.fixture
-def session_factory(tmp_path):
+def _db(tmp_path):
+    """One temp SQLite file, exposed via two factories (like production):
+    a normal deferred factory and the BEGIN IMMEDIATE claim factory."""
     url = f"sqlite:///{(tmp_path / 'test.db').as_posix()}"
     engine = make_engine(url)
     init_db(engine)
-    return make_session_factory(engine)
+    claim_engine = make_engine(url, sqlite_immediate=True)
+    return {
+        "session_factory": make_session_factory(engine),
+        "claim_session_factory": make_session_factory(claim_engine),
+    }
+
+
+@pytest.fixture
+def session_factory(_db):
+    return _db["session_factory"]
+
+
+@pytest.fixture
+def claim_session_factory(_db):
+    return _db["claim_session_factory"]
 
 
 def _create_user(factory, *, email, password, name, role):
@@ -87,6 +111,8 @@ def create_project(
     status: str = STATUS_DRAFT,
     description: str = "",
     max_teams: int | None = None,
+    opens_at=None,
+    closes_at=None,
 ) -> int:
     db = session_factory()
     try:
@@ -96,6 +122,8 @@ def create_project(
             status=status,
             description=description,
             max_teams=max_teams,
+            opens_at=opens_at,
+            closes_at=closes_at,
         )
         db.add(p)
         db.commit()
@@ -104,9 +132,49 @@ def create_project(
         db.close()
 
 
+def make_student(session_factory, email: str, name: str = "学生") -> int:
+    _create_user(
+        session_factory,
+        email=email,
+        password="Student#Pass-123",
+        name=name,
+        role=ROLE_STUDENT,
+    )
+    return user_id(session_factory, email)
+
+
+def create_team(
+    session_factory,
+    *,
+    project_id: int,
+    name: str,
+    leader_id: int,
+    slot_no: int = 0,
+    add_leader_member: bool = True,
+) -> int:
+    db = session_factory()
+    try:
+        t = Team(
+            project_id=project_id, name=name, leader_id=leader_id, slot_no=slot_no
+        )
+        db.add(t)
+        db.flush()
+        if add_leader_member:
+            db.add(
+                TeamMember(team_id=t.id, user_id=leader_id, project_id=project_id)
+            )
+        db.commit()
+        return t.id
+    finally:
+        db.close()
+
+
 @pytest.fixture
-def app(session_factory):
-    application = create_app(session_factory=session_factory)
+def app(_db):
+    application = create_app(
+        session_factory=_db["session_factory"],
+        claim_session_factory=_db["claim_session_factory"],
+    )
 
     # Test-only probe route exercising the real teacher gate directly.
     @application.get("/__probe/teacher")

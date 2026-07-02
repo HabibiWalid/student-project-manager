@@ -11,6 +11,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -82,5 +83,60 @@ class Project(Base):
         DateTime(timezone=True), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class Team(Base):
+    __tablename__ = "teams"
+    __table_args__ = (
+        # A team name is unique within a project.
+        UniqueConstraint("project_id", "name", name="uq_teams_project_name"),
+        # THE claim-race backstop: two concurrent claimers compute the same
+        # slot_no and exactly one insert can win. Independent of lock/isolation.
+        UniqueConstraint("project_id", "slot_no", name="uq_teams_project_slot"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey("projects.id"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    leader_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    # slot_no is a per-project, monotonic (MAX+1), NEVER-REUSED claim token — not
+    # a dense 0..max-1 index. Capacity is enforced separately by COUNT<max_teams,
+    # so slot_no only needs to be collision-free. NOTE: this scheme assumes teams
+    # are never hard-deleted in a way that must recycle a slot value; MAX+1 stays
+    # collision-free under deletes (it is always greater than every surviving
+    # row), but if a delete/re-add feature is ever added, revisit this comment.
+    slot_no: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class TeamMember(Base):
+    __tablename__ = "team_members"
+    __table_args__ = (
+        # A user may belong to at most ONE team per project. Blocks joining a
+        # second team on the same project (the leader's auto-join hits this too).
+        UniqueConstraint(
+            "project_id", "user_id", name="uq_team_members_project_user"
+        ),
+    )
+
+    # PK(team_id, user_id): a user cannot join the SAME team twice.
+    team_id: Mapped[int] = mapped_column(
+        ForeignKey("teams.id"), primary_key=True
+    )
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"), primary_key=True
+    )
+    # Denormalized from the team so the one-team-per-project UNIQUE can be a DB
+    # constraint rather than application logic.
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey("projects.id"), nullable=False, index=True
+    )
+    joined_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
