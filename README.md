@@ -70,7 +70,7 @@ Then open http://127.0.0.1:8000/login and log in with a seeded account.
 pytest
 ```
 
-Phase 1 suite (24 tests) covers: config fail-fast, password hashing &
+Phase 1 suite (25 tests) covers: config fail-fast, password hashing &
 `verify` fail-closed behavior, `authenticate()` (success / wrong password /
 unknown email / email normalization), login & logout HTTP flow, anti-enumeration
 (unknown email and wrong password return identical responses), template

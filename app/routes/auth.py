@@ -20,6 +20,12 @@ router = APIRouter()
 # Single generic credential-failure message (no enumeration).
 INVALID_CREDENTIALS_MESSAGE = "邮箱或密码错误"
 
+# Upper bounds checked BEFORE any password hashing, so an oversized field can't
+# force argon2 to burn CPU on the unauthenticated login route (DoS lever).
+# Generous limits: a real email is < 320 chars (RFC), a real password < 1024.
+MAX_EMAIL_LEN = 320
+MAX_PASSWORD_LEN = 1024
+
 
 def _render_login(request: Request, *, error: str | None = None, status_code: int = 200):
     return templates.TemplateResponse(
@@ -39,6 +45,15 @@ def login_submit(
     password: str = Form(...),
     db: Session = Depends(get_db),
 ):
+    # Reject oversized input before hashing. Same generic outcome as bad
+    # credentials so it reveals nothing.
+    if len(email) > MAX_EMAIL_LEN or len(password) > MAX_PASSWORD_LEN:
+        return _render_login(
+            request,
+            error=INVALID_CREDENTIALS_MESSAGE,
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
+
     user = authenticate(db, email, password)
     if user is None:
         return _render_login(

@@ -52,6 +52,14 @@ def test_login_unknown_email_same_generic_response(client, users, login):
     assert unknown.text == wrong_pw.text
 
 
+def test_login_oversized_password_rejected_before_hashing(client, users, login):
+    # A huge password must be rejected generically (401), not hashed (which
+    # would let an attacker burn argon2 CPU) and not 500.
+    r = login(client, users["student"]["email"], "x" * 10_000)
+    assert r.status_code == 401
+    assert INVALID_CREDENTIALS_MESSAGE in r.text
+
+
 def test_login_missing_fields_returns_422(client):
     r = client.post("/login", data={"email": "a@b.com"}, follow_redirects=False)
     assert r.status_code == 422
