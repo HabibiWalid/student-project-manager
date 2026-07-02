@@ -16,6 +16,8 @@ from app.models import ROLE_STUDENT, ROLE_TEACHER, User
 
 
 def get_db(request: Request) -> Iterator[Session]:
+    """DEFAULT (deferred) session — use this for everything EXCEPT the claim/join
+    transaction. See the engine rule in app/main.create_app."""
     factory = request.app.state.session_factory
     db = factory()
     try:
@@ -25,10 +27,12 @@ def get_db(request: Request) -> Iterator[Session]:
 
 
 def get_claim_db(request: Request) -> Iterator[Session]:
-    """Session for the claim/join path (SQLite BEGIN IMMEDIATE). Used for BOTH
-    the auth read and the write of a claim request, so the whole request runs on
-    ONE connection/transaction — otherwise the request's own open read would
-    hold a lock that blocks its own commit."""
+    """IMMEDIATE session — use ONLY for the claim/join path (create_team /
+    join_team). See the engine rule in app/main.create_app.
+
+    Used for BOTH the auth read and the write of a claim request, so the whole
+    request runs on ONE connection/transaction — otherwise the request's own open
+    read would hold a lock that blocks its own commit."""
     factory = request.app.state.claim_session_factory
     db = factory()
     try:

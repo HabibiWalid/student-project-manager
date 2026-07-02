@@ -32,6 +32,24 @@ def create_app(
 
     app = FastAPI(title="学生项目管理系统")
 
+    # ------------------------------------------------------------------ #
+    # TWO ENGINES / TWO FACTORIES — READ THIS BEFORE USING EITHER.
+    #
+    # THE RULE: only the claim/join path (create_team / join_team) uses the
+    # IMMEDIATE engine; EVERYTHING ELSE uses the default engine.
+    #
+    # - session_factory (DEFAULT, deferred): all reads and all NON-claim writes.
+    #   Reads run concurrently here. Use via Depends(get_db).
+    # - claim_session_factory (IMMEDIATE): ONLY the read-then-write claim/join
+    #   transaction, which must take the SQLite write lock up front to avoid the
+    #   SHARED->EXCLUSIVE upgrade deadlock. Use via Depends(get_claim_db).
+    #
+    # Misusing these is a correctness bug, not a style nit:
+    # - Routing a normal write through the IMMEDIATE engine serializes it (and
+    #   any overlapping read session can deadlock it) for no benefit.
+    # - Routing a claim through the DEFAULT engine reintroduces the upgrade
+    #   deadlock under concurrent claims.
+    # ------------------------------------------------------------------ #
     if session_factory is None:
         engine = make_engine(settings.database_url)
         init_db(engine)
