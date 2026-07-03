@@ -46,3 +46,7 @@ See [SECURITY.md](SECURITY.md): the CSRF posture (SameSite=Lax + the test-guarde
 
 - No campus SSO in the MVP — login is local email + password, kept behind a single `authenticate()` seam so an SSO adapter can replace it without touching routes.
 - A hard crash between an upload's file write and its DB commit can orphan a file on disk; the fix is a periodic GC sweep (files with no DB row), not built.
+
+## License & credits
+
+Project concept originated with a teacher (used with their permission); the implementation is mine. Released under the [MIT License](LICENSE).
