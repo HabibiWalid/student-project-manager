@@ -17,6 +17,7 @@ import os
 import sys
 from typing import Mapping
 
+from dotenv import load_dotenv
 from sqlalchemy import select
 
 from app.config import DEFAULT_DATABASE_URL
@@ -91,7 +92,10 @@ def _upsert(db, *, email: str, password: str, name: str, role: str) -> str:
 
 
 def main(env: Mapping[str, str] | None = None) -> int:
-    env = os.environ if env is None else env
+    if env is None:
+        # Load .env for local dev (does not override real env vars).
+        load_dotenv()
+        env = os.environ
 
     try:
         users = _collect_users(env)

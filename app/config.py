@@ -11,6 +11,8 @@ import os
 from dataclasses import dataclass
 from typing import Mapping
 
+from dotenv import load_dotenv
+
 # A signing key shorter than this is rejected — a short/guessable key defeats
 # the whole point of a signed session cookie.
 MIN_SECRET_LEN = 32
@@ -45,7 +47,14 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
     Raises ConfigError if SESSION_SECRET is absent or too short. All other
     values fall back to safe local-dev defaults.
     """
-    env = os.environ if env is None else env
+    if env is None:
+        # Local-dev convenience: populate unset vars from a .env file if present.
+        # load_dotenv() never overrides variables already in the real
+        # environment, so production (env-provided config) is unaffected, and a
+        # missing .env is a no-op. Callers that pass an explicit env (tests) skip
+        # this entirely.
+        load_dotenv()
+        env = os.environ
 
     secret = env.get("SESSION_SECRET")
     if not secret or len(secret) < MIN_SECRET_LEN:
