@@ -23,7 +23,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.config import Settings, load_settings
 from app.db import init_db, make_engine, make_session_factory
 from app.middleware import LimitUploadBodyMiddleware
-from app.routes import auth, projects, submissions, teams
+from app.routes import auth, projects, scores, submissions, teams
 from app.uploads import MAX_REQUEST_BYTES
 
 
@@ -90,4 +90,5 @@ def create_app(
     app.include_router(projects.router)
     app.include_router(teams.router)
     app.include_router(submissions.router)
+    app.include_router(scores.router)
     return app

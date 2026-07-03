@@ -186,3 +186,28 @@ class SubmissionFile(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class Score(Base):
+    __tablename__ = "scores"
+    __table_args__ = (
+        # Backstop for the boundary rule: awards are positive and bounded. The
+        # route validates too (nicer error); this makes it a DB invariant.
+        CheckConstraint(
+            "points >= 1 AND points <= 1000", name="ck_scores_points_range"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    team_id: Mapped[int] = mapped_column(
+        ForeignKey("teams.id"), nullable=False, index=True
+    )
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey("projects.id"), nullable=False, index=True
+    )
+    points: Mapped[int] = mapped_column(Integer, nullable=False)
+    awarded_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )

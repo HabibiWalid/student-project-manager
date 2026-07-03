@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>排行榜 · {{ project.title }}</title>
+</head>
+<body>
+  <p><a href="/projects/{{ project.id }}">← 返回项目</a></p>
+
+  <main>
+    <h1>排行榜：{{ project.title }}</h1>
+    {% if rows %}
+    <ol>
+      {% for row in rows %}
+      <li>
+        {{ row.name }} — {{ row.total }} 分
+        {% if is_owner %}
+        <a href="/projects/{{ project.id }}/teams/{{ row.id }}/score/new">评分</a>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+    {% else %}
+    <p>暂无队伍。</p>
+    {% endif %}
+  </main>
+</body>
+</html>

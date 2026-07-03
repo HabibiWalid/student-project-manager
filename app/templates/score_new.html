@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>评分 · {{ team.name }}</title>
+</head>
+<body>
+  <p><a href="/projects/{{ project.id }}/leaderboard">← 返回排行榜</a></p>
+
+  <main>
+    <h1>为「{{ team.name }}」评分</h1>
+    {% if error %}
+    <p role="alert">{{ error }}</p>
+    {% endif %}
+    <form method="post" action="/projects/{{ project.id }}/teams/{{ team.id }}/scores">
+      <label>分值（1–1000）<input type="number" name="points" min="1" max="1000" required></label>
+      <label>理由<input type="text" name="reason" maxlength="500" required></label>
+      <button type="submit">提交评分</button>
+    </form>
+
+    <section>
+      <h2>已有评分</h2>
+      {% if scores %}
+      <ul>
+        {% for s in scores %}
+        <li>
+          {{ s.points }} 分 — {{ s.reason }}
+          <form method="post" action="/projects/{{ project.id }}/scores/{{ s.id }}/void" style="display:inline">
+            <button type="submit">撤销</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p>暂无评分。</p>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

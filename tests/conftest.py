@@ -26,6 +26,7 @@ from app.models import (
     ROLE_TEACHER,
     STATUS_DRAFT,
     Project,
+    Score,
     Submission,
     SubmissionFile,
     Team,
@@ -157,11 +158,21 @@ def create_team(
     project_id: int,
     name: str,
     leader_id: int,
-    slot_no: int = 0,
+    slot_no: int | None = None,
     add_leader_member: bool = True,
 ) -> int:
     db = session_factory()
     try:
+        if slot_no is None:
+            # Auto-assign the next slot (like the real service) so multiple teams
+            # can be seeded on one project without manual bookkeeping.
+            from sqlalchemy import func
+
+            slot_no = db.execute(
+                select(func.coalesce(func.max(Team.slot_no), -1) + 1).where(
+                    Team.project_id == project_id
+                )
+            ).scalar_one()
         t = Team(
             project_id=project_id, name=name, leader_id=leader_id, slot_no=slot_no
         )
@@ -214,6 +225,31 @@ def write_submission_file(
         file_id = sf.id
         db.commit()
         return file_id
+    finally:
+        db.close()
+
+
+def award_score(
+    session_factory,
+    *,
+    team_id: int,
+    project_id: int,
+    points: int,
+    awarded_by: int,
+    reason: str = "奖励",
+) -> int:
+    db = session_factory()
+    try:
+        s = Score(
+            team_id=team_id,
+            project_id=project_id,
+            points=points,
+            awarded_by=awarded_by,
+            reason=reason,
+        )
+        db.add(s)
+        db.commit()
+        return s.id
     finally:
         db.close()
 

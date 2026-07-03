@@ -4,7 +4,7 @@ A server-rendered FastAPI web app for a teacher managing student project teams.
 UI strings are in 简体中文. See [PROJECT_BRIEF.md](PROJECT_BRIEF.md) for the full
 spec and phased build plan.
 
-**Status:** Phases 1–4 complete.
+**Status:** Phases 1–5 complete (MVP done).
 - **Phase 1 (Foundation):** config, DB models, argon2 auth, signed session
   cookie, server-side role gating. Login works.
 - **Phase 2 (Projects):** teachers create projects (draft→open→closed) and
@@ -26,6 +26,14 @@ spec and phased build plan.
   (no orphan files, no half-written rows). Downloads go through an
   authorization-checked streaming route (team members or any teacher) that forces
   `attachment` + `application/octet-stream` + `nosniff` with a sanitized filename.
+- **Phase 5 (Scoring & leaderboard):** the project owner awards a team positive
+  points (`1..1000`, reason required; DB `CHECK` backstop) — an append-only
+  ledger. Mistakes are removed with an owner-only **void** (deletes one `Score`
+  row); no negative awards. The leaderboard is a **derived** ranked
+  `SUM(points)` query (never a stored counter), scoped per project, with
+  deterministic tie-breaking (`total DESC, team_id ASC`) and zero-award teams
+  shown with 0. Any authenticated user who can view the project can view its
+  board.
 
 ### Uploaded-archive safety boundary
 
@@ -120,7 +128,7 @@ Then open http://127.0.0.1:8000/login and log in with a seeded account.
 pytest
 ```
 
-The suite (97 tests) covers:
+The suite (124 tests) covers:
 
 - **Phase 1 (25):** config fail-fast, password hashing & `verify` fail-closed
   behavior, `authenticate()` (success / wrong password / unknown email / email
@@ -147,3 +155,9 @@ The suite (97 tests) covers:
   leave zero trace); submit authz (non-member→403, anon→401); download authz
   (member/teacher→200, non-member→403, anon→401, missing→404); Content-Disposition
   header-injection sanitization; and the never-decompress guard.
+- **Phase 5 (23 + 2 render-guard pages):** award authz (student→403, anon→401,
+  non-owner teacher→403, team-not-in-project/missing→404); points boundary
+  (0/negative/1001→400, non-integer→422, empty reason→400); accumulation;
+  void (award→void restores the total, missing/other-project→404,
+  student/anon/non-owner→403/401); and leaderboard totals, deterministic tie
+  ordering, zero-award team shown, draft hidden from students, anon→401.
