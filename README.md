@@ -1,181 +1,48 @@
-# 学生项目管理系统 (Student Project Management System)
+# 学生项目管理系统 · Student Project Management System
 
-A server-rendered FastAPI web app for a teacher managing student project teams.
-UI strings are in 简体中文. See [PROJECT_BRIEF.md](PROJECT_BRIEF.md) for the full
-spec and phased build plan.
+一句话：教师发布项目，学生组队认领、提交成果，并按积分在排行榜上排名的团队项目管理系统。
 
-**Status:** Phases 1–5 complete (MVP done).
-- **Phase 1 (Foundation):** config, DB models, argon2 auth, signed session
-  cookie, server-side role gating. Login works.
-- **Phase 2 (Projects):** teachers create projects (draft→open→closed) and
-  manage only their own; students browse/view only open projects; drafts are
-  not disclosed to students. `/` bounces to the projects list or login.
-- **Phase 3 (Teams & claiming):** students form a team on an open project (the
-  claim), others join. The claim race is settled at the DB level by
-  `UNIQUE(project_id, slot_no)` (backstop, backend-agnostic) plus a
-  BEGIN-IMMEDIATE claim transaction on SQLite / `SELECT … FOR UPDATE` on
-  Postgres. Guards: claim only while `open` and within `opens_at/closes_at`,
-  `max_teams` respected, one team per project per user, no double-join. A DB
-  lock timeout surfaces as 503, never a 500.
-- **Phase 4 (Submissions & files):** team members submit a note + files.
-  Uploads are size-capped mid-stream (ASGI body-limit middleware + per-file
-  streaming cutoff — Starlette's `max_part_size` does not bound file parts), type
-  allowlisted by extension **and** sniffed magic bytes (declared MIME is not
-  trusted), stored under a generated uuid name in a non-served dir, and hashed
-  (sha256). A submission is atomic: any mid-submission failure leaves zero trace
-  (no orphan files, no half-written rows). Downloads go through an
-  authorization-checked streaming route (team members or any teacher) that forces
-  `attachment` + `application/octet-stream` + `nosniff` with a sanitized filename.
-- **Phase 5 (Scoring & leaderboard):** the project owner awards a team positive
-  points (`1..1000`, reason required; DB `CHECK` backstop) — an append-only
-  ledger. Mistakes are removed with an owner-only **void** (deletes one `Score`
-  row); no negative awards. The leaderboard is a **derived** ranked
-  `SUM(points)` query (never a stored counter), scoped per project, with
-  deterministic tie-breaking (`total DESC, team_id ASC`) and zero-award teams
-  shown with 0. Any authenticated user who can view the project can view its
-  board.
+One line: a teacher-run system where students form teams, claim published projects, submit deliverables, and are ranked on a points leaderboard.
 
-### Uploaded-archive safety boundary
+## Highlights
 
-The app **never decompresses or extracts** uploaded zip/docx files — it stores
-and serves their bytes verbatim (a `grep`-based test enforces this). A zip bomb
-or zip-traversal entry is only dangerous if something extracts it. **If a future
-feature ever extracts uploaded archives, it MUST first add zip-bomb
-(decompressed-size cap) and zip-traversal (entry-path sanitization) defenses.**
+- Concurrency-safe team claiming: the "last open slot" race is settled by a DB `UNIQUE(project_id, slot_no)` backstop plus `SELECT … FOR UPDATE` (Postgres) / `BEGIN IMMEDIATE` (SQLite); proven by real threaded tests (exactly one winner, capacity never exceeded) and green on both SQLite and PostgreSQL 16.4.
+- Hardened file uploads: request body capped mid-stream (413 before buffering), per-file 20 MB streaming cutoff, extension + magic-byte allowlist (declared MIME not trusted), uuid storage names in a non-served dir, and authorization-gated streaming downloads (forced attachment + `nosniff`).
+- Server-side authorization audited across phase seams: role + project-ownership + team-membership checks, no cross-team/cross-project IDOR; the posture is written up in [SECURITY.md](SECURITY.md).
+- Regression guards baked into the suite: a render guard (every GET HTML page renders, no raw template markup leaks) and a no-GET-mutation guard (no GET route performs a write — the invariant the CSRF defense relies on).
 
-### Concurrency note
+## Tech stack
 
-`slot_no` is a per-project, monotonic (`MAX+1`), never-reused claim token; team
-capacity is enforced separately by `COUNT < max_teams`. This is safe under the
-MVP (no team deletion). If a delete/re-add feature is ever added, the scheme
-stays collision-free (`MAX+1` is always greater than every surviving row), but
-revisit the comment on `Team.slot_no` in `app/models.py`.
+- Python 3.11+ · FastAPI 0.139 · SQLAlchemy 2.0 · Jinja2 3.1 (server-rendered, no JS build)
+- SQLite (default) / PostgreSQL 16.4 · argon2-cffi 25.1 password hashing · signed httponly SameSite=Lax session cookie
+- Tests: pytest 9.1 + FastAPI `TestClient` (httpx)
 
-The threaded tests prove the invariant on **SQLite** (BEGIN IMMEDIATE claim
-engine) and the full suite also passes against **PostgreSQL 16.4** (via
-`postgresql+psycopg`), where the claim path uses `SELECT … FOR UPDATE` and the
-`UNIQUE(project_id, slot_no)` constraint is the backstop. The claim-race
-concurrency tests and leaderboard ordering were confirmed stable on both engines
-with no code or query changes.
-
-### Running the suite against Postgres
-
-The suite is SQLite by default. To run it against Postgres, install the driver
-(`pip install "psycopg[binary]"`) and point it at a database:
-
-```bash
-TEST_DATABASE_URL=postgresql+psycopg://user@host:5432/dbname pytest
-```
-
-## Stack
-
-- Python 3.11+ (developed on 3.14), FastAPI, SQLAlchemy 2.x (SQLite for the MVP)
-- Jinja2 server-rendered templates (no JS build step)
-- Passwords hashed with argon2 (`argon2-cffi`)
-- Session via a signed, httponly, samesite cookie (Starlette `SessionMiddleware`)
-
-## Setup
+## Run locally
 
 ```bash
 python -m venv .venv
-# Windows (Git Bash):
-source .venv/Scripts/activate
-# macOS/Linux:
-# source .venv/bin/activate
-
-pip install -r requirements-dev.txt   # runtime + test deps
-cp .env.example .env                  # then edit .env with real values
-```
-
-### Required environment variables
-
-All config comes from the environment (never hardcoded). See `.env.example`.
-
-| Variable | Required | Purpose |
-|---|---|---|
-| `SESSION_SECRET` | **yes** (≥ 32 chars) | Signs the session cookie. App refuses to start without it. |
-| `DATABASE_URL` | no | SQLAlchemy URL. Defaults to `sqlite:///./app.db`. |
-| `SESSION_COOKIE_SECURE` | no | Set `true` in production (HTTPS) to mark the cookie Secure. |
-| `SESSION_COOKIE_NAME` | no | Override the cookie name. |
-| `SEED_TEACHER_EMAIL` / `SEED_TEACHER_PASSWORD` | for seeding | Teacher account. |
-| `SEED_STUDENT1_*`, `SEED_STUDENT2_*` | for seeding | Two student accounts. |
-
-Generate a secret:
-
-```bash
-python -c "import secrets; print(secrets.token_urlsafe(48))"
-```
-
-## Seed users
-
-There is no public registration route (single-teacher classroom tool). Create
-the initial accounts with the idempotent seed script. Passwords come only from
-the environment — seeding fails loudly if any is missing.
-
-```bash
-python -m seed
-```
-
-## Run
-
-```bash
+source .venv/Scripts/activate          # Windows Git Bash; macOS/Linux: source .venv/bin/activate
+pip install -r requirements-dev.txt
+cp .env.example .env                    # placeholders work out of the box (SESSION_SECRET is preset)
+python -m seed                          # seeds 1 teacher + 2 students from .env
 uvicorn app.main:create_app --factory --reload
 ```
 
-Then open http://127.0.0.1:8000/login and log in with a seeded account.
-
-## Security
-
-See [SECURITY.md](SECURITY.md) for the deliberate security posture — notably the
-CSRF defense (SameSite=Lax + "no GET mutates", the latter guarded by a test), the
-`SESSION_COOKIE_SECURE` production requirement, and the authorization model.
-
-## Known limitations
-
-- **Orphaned upload on hard crash.** A submission writes files to disk and then
-  commits DB rows; on graceful failure everything is rolled back, but a hard
-  crash (`kill -9`, power loss) between the file writes and the DB commit can
-  leave files on disk with no DB row. Filesystem and DB writes can't be made
-  atomic without a two-phase protocol that isn't worth it here. If this ever
-  matters, the fix is a periodic GC sweep that deletes files in `UPLOAD_DIR`
-  with no matching `SubmissionFile` row and older than N minutes. Not built.
+Open http://127.0.0.1:8000/login and sign in as `teacher@example.com` with the password from your `.env`.
 
 ## Tests
 
 ```bash
-pytest
+pytest                                  # 125 tests, SQLite
 ```
 
-The suite (124 tests) covers:
+Against Postgres: `TEST_DATABASE_URL=postgresql+psycopg://user@host:5432/db pytest`
 
-- **Phase 1 (25):** config fail-fast, password hashing & `verify` fail-closed
-  behavior, `authenticate()` (success / wrong password / unknown email / email
-  normalization), login & logout HTTP flow, anti-enumeration (unknown email and
-  wrong password return identical responses), oversized-input rejection,
-  template rendering (no raw Jinja markup leaks; generic 简体中文 error), and
-  server-side role gating (401 unauthenticated, 403 student, 200 teacher).
-- **Phase 2 (18):** entry redirect, teacher-only creation as draft, input
-  validation (empty title / bad max_teams / close-before-open → 400), status
-  transitions (draft→open→closed; invalid → 409), ownership enforcement
-  (non-owner teacher → 403), and status-based visibility (students see only open
-  projects; drafts return 404).
-- **Phase 3 (19 + 2 render-guard pages):** claim happy-path + leader auto-join;
-  role/auth gates (teacher→403, anon→401); guards for draft/closed/out-of-window
-  /full/duplicate-name/missing (409/404) and empty name (400); join, double-join
-  and second-team-per-project blocks; a DB-lock-timeout→503 mapping; and three
-  real-thread tests — two service-level claim races (exactly one wins, capacity
-  never exceeded) and one HTTP-contention test asserting no 500 escapes.
-- **Phase 4 (27 + 1 render-guard page):** streaming size cutoff (unit test proves
-  the middleware aborts mid-receive before consuming the whole body; plus a
-  Content-Length early-reject and an end-to-end 413); type allowlist + magic
-  sniffing (bad extension and magic-mismatch → 415); path-traversal filename
-  stored safely; **atomicity** (partial-file failure and injected DB failure both
-  leave zero trace); submit authz (non-member→403, anon→401); download authz
-  (member/teacher→200, non-member→403, anon→401, missing→404); Content-Disposition
-  header-injection sanitization; and the never-decompress guard.
-- **Phase 5 (23 + 2 render-guard pages):** award authz (student→403, anon→401,
-  non-owner teacher→403, team-not-in-project/missing→404); points boundary
-  (0/negative/1001→400, non-integer→422, empty reason→400); accumulation;
-  void (award→void restores the total, missing/other-project→404,
-  student/anon/non-owner→403/401); and leaderboard totals, deterministic tie
-  ordering, zero-award team shown, draft hidden from students, anon→401.
+## Security
+
+See [SECURITY.md](SECURITY.md): the CSRF posture (SameSite=Lax + the test-guarded "no GET mutates" invariant), the `SESSION_COOKIE_SECURE` production requirement, and the authorization model.
+
+## Known limitations
+
+- No campus SSO in the MVP — login is local email + password, kept behind a single `authenticate()` seam so an SSO adapter can replace it without touching routes.
+- A hard crash between an upload's file write and its DB commit can orphan a file on disk; the fix is a periodic GC sweep (files with no DB row), not built.
