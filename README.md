@@ -124,6 +124,12 @@ uvicorn app.main:create_app --factory --reload
 
 Then open http://127.0.0.1:8000/login and log in with a seeded account.
 
+## Security
+
+See [SECURITY.md](SECURITY.md) for the deliberate security posture — notably the
+CSRF defense (SameSite=Lax + "no GET mutates", the latter guarded by a test), the
+`SESSION_COOKIE_SECURE` production requirement, and the authorization model.
+
 ## Known limitations
 
 - **Orphaned upload on hard crash.** A submission writes files to disk and then
