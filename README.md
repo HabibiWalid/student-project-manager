@@ -104,6 +104,16 @@ uvicorn app.main:create_app --factory --reload
 
 Then open http://127.0.0.1:8000/login and log in with a seeded account.
 
+## Known limitations
+
+- **Orphaned upload on hard crash.** A submission writes files to disk and then
+  commits DB rows; on graceful failure everything is rolled back, but a hard
+  crash (`kill -9`, power loss) between the file writes and the DB commit can
+  leave files on disk with no DB row. Filesystem and DB writes can't be made
+  atomic without a two-phase protocol that isn't worth it here. If this ever
+  matters, the fix is a periodic GC sweep that deletes files in `UPLOAD_DIR`
+  with no matching `SubmissionFile` row and older than N minutes. Not built.
+
 ## Tests
 
 ```bash

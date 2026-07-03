@@ -212,6 +212,29 @@ def test_db_failure_leaves_zero_trace(
     assert _no_files(upload_dir)  # and no orphan file on disk
 
 
+def test_too_many_files_rejected(student_client, session_factory, upload_dir, users):
+    team_id, _ = _member_team(session_factory)
+    files = [("files", (f"f{i}.png", PNG, "image/png")) for i in range(11)]  # > 10
+    r = student_client.post(
+        f"/teams/{team_id}/submissions", files=files, follow_redirects=False
+    )
+    assert r.status_code == 400
+    assert _submission_count(session_factory) == 0
+    assert _no_files(upload_dir)
+
+
+def test_empty_file_rejected(student_client, session_factory, upload_dir, users):
+    team_id, _ = _member_team(session_factory)
+    r = student_client.post(
+        f"/teams/{team_id}/submissions",
+        files=[("files", ("empty.png", b"", "image/png"))],
+        follow_redirects=False,
+    )
+    assert r.status_code == 400
+    assert _submission_count(session_factory) == 0
+    assert _no_files(upload_dir)
+
+
 def test_streaming_body_cap_returns_413_midstream(
     student_client, app, session_factory, upload_dir, users
 ):
