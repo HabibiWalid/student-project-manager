@@ -2,3 +2,8 @@
 -r requirements.txt
 pytest==9.1.1
 httpx==0.28.1
+
+# Optional: only needed to run the suite against Postgres
+# (TEST_DATABASE_URL=postgresql+psycopg://...). Not required for the default
+# SQLite test run. Verified present on PyPI.
+# psycopg[binary]==3.3.4

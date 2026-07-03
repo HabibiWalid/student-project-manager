@@ -18,7 +18,12 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app import security
-from app.db import init_db, make_engine, make_session_factory
+from app.db import Base, init_db, make_engine, make_session_factory
+
+# When set (e.g. a postgresql+psycopg://... URL), the whole suite runs against
+# that database instead of a per-test SQLite file. Used for the Postgres smoke
+# run; unset by default so normal runs stay on SQLite.
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
 from app.deps import require_teacher
 from app.main import create_app
 from app.models import (
@@ -50,8 +55,23 @@ STUDENT = {
 
 @pytest.fixture
 def _db(tmp_path):
-    """One temp SQLite file, exposed via two factories (like production):
-    a normal deferred factory and the BEGIN IMMEDIATE claim factory."""
+    """DB factories for a test. SQLite by default (per-test temp file, two
+    factories: deferred + BEGIN IMMEDIATE). When TEST_DATABASE_URL is set, run
+    against that database instead (schema reset per test for isolation); off
+    SQLite the sqlite_immediate flag is a no-op, so both factories share one
+    engine and claim correctness rests on FOR UPDATE + the UNIQUE backstop —
+    exactly the Postgres path we want to exercise."""
+    if TEST_DATABASE_URL:
+        engine = make_engine(TEST_DATABASE_URL)
+        Base.metadata.drop_all(engine)
+        init_db(engine)
+        sf = make_session_factory(engine)
+        return {
+            "session_factory": sf,
+            "claim_session_factory": sf,
+            "upload_dir": tmp_path / "uploads",
+        }
+
     url = f"sqlite:///{(tmp_path / 'test.db').as_posix()}"
     engine = make_engine(url)
     init_db(engine)

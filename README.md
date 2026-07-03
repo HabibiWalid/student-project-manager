@@ -51,9 +51,21 @@ MVP (no team deletion). If a delete/re-add feature is ever added, the scheme
 stays collision-free (`MAX+1` is always greater than every surviving row), but
 revisit the comment on `Team.slot_no` in `app/models.py`.
 
-The threaded tests prove the invariant on **SQLite**; the `UNIQUE(project_id,
-slot_no)` constraint is what carries it to **Postgres** (the Postgres path is not
-tested here).
+The threaded tests prove the invariant on **SQLite** (BEGIN IMMEDIATE claim
+engine) and the full suite also passes against **PostgreSQL 16.4** (via
+`postgresql+psycopg`), where the claim path uses `SELECT … FOR UPDATE` and the
+`UNIQUE(project_id, slot_no)` constraint is the backstop. The claim-race
+concurrency tests and leaderboard ordering were confirmed stable on both engines
+with no code or query changes.
+
+### Running the suite against Postgres
+
+The suite is SQLite by default. To run it against Postgres, install the driver
+(`pip install "psycopg[binary]"`) and point it at a database:
+
+```bash
+TEST_DATABASE_URL=postgresql+psycopg://user@host:5432/dbname pytest
+```
 
 ## Stack
 
