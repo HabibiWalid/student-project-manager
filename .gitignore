@@ -19,3 +19,6 @@ venv/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# Local agent/editor session data — never commit
+.claude/
