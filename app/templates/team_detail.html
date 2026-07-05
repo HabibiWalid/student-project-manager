@@ -1,50 +1,44 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ team.name }} · 队伍详情</title>
-</head>
-<body>
-  <p><a href="/projects/{{ team.project_id }}">← 返回项目</a></p>
+{% extends "base.html" %}
+{% block title %}{{ team.name }} · 队伍详情{% endblock %}
+{% block content %}
+<p class="back"><a href="/projects/{{ team.project_id }}">← 返回项目</a></p>
 
-  <main>
-    <h1>队伍：{{ team.name }}</h1>
-    <p>所属项目：{{ project.title }}</p>
+<main class="card">
+  <h1>队伍：{{ team.name }}</h1>
+  <p class="muted">所属项目：{{ project.title }}</p>
 
-    <section>
-      <h2>成员（{{ members | length }}）</h2>
-      <ul>
-        {% for m in members %}
-        <li>{{ m.name }}{% if m.id == team.leader_id %}（队长）{% endif %}</li>
-        {% endfor %}
-      </ul>
-    </section>
+  <section>
+    <h2>成员（{{ members | length }}）</h2>
+    <ul class="list">
+      {% for m in members %}
+      <li>{{ m.name }}{% if m.id == team.leader_id %}（队长）{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </section>
 
-    {% if can_see_submissions %}
-    <section>
-      <h2>成果提交</h2>
-      {% if is_member %}
-      <p><a href="/teams/{{ team.id }}/submissions/new">提交成果</a></p>
-      {% endif %}
-      {% if submissions %}
-      <ul>
-        {% for s in submissions %}
-        <li>
-          <p>{{ s.submission.note or "（无说明）" }}</p>
-          <ul>
-            {% for f in s.files %}
-            <li><a href="/files/{{ f.id }}">{{ f.original_name }}</a>（{{ f.size_bytes }} 字节）</li>
-            {% endfor %}
-          </ul>
-        </li>
-        {% endfor %}
-      </ul>
-      {% else %}
-      <p>暂无提交。</p>
-      {% endif %}
-    </section>
+  {% if can_see_submissions %}
+  <section>
+    <h2>成果提交</h2>
+    {% if is_member %}
+    <p><a class="btn btn-primary" href="/teams/{{ team.id }}/submissions/new">提交成果</a></p>
     {% endif %}
-  </main>
-</body>
-</html>
+    {% if submissions %}
+    <ul class="list">
+      {% for s in submissions %}
+      <li>
+        <p>{{ s.submission.note or "（无说明）" }}</p>
+        <ul class="files">
+          {% for f in s.files %}
+          <li><a href="/files/{{ f.id }}">{{ f.original_name }}</a>（{{ f.size_bytes }} 字节）</li>
+          {% endfor %}
+        </ul>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty">暂无提交。</p>
+    {% endif %}
+  </section>
+  {% endif %}
+</main>
+{% endblock %}

@@ -1,68 +1,62 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ project.title }} · 学生项目管理系统</title>
-</head>
-<body>
-  <p><a href="/projects">← 返回项目列表</a></p>
+{% extends "base.html" %}
+{% block title %}{{ project.title }} · 学生项目管理系统{% endblock %}
+{% block content %}
+<p class="back"><a href="/projects">← 返回项目列表</a></p>
 
-  <main>
-    <h1>{{ project.title }}</h1>
-    <p>状态：
-      {% if project.status == "draft" %}草稿{% elif project.status == "open" %}开放{% else %}已关闭{% endif %}
-    </p>
-    {% if project.max_teams is not none %}
-    <p>最大队伍数：{{ project.max_teams }}</p>
+<main class="card">
+  <h1>{{ project.title }}</h1>
+  <p>状态：
+    {% if project.status == "draft" %}<span class="pill pill-draft">草稿</span>{% elif project.status == "open" %}<span class="pill pill-open">开放</span>{% else %}<span class="pill pill-closed">已关闭</span>{% endif %}
+  </p>
+  {% if project.max_teams is not none %}
+  <p class="muted">最大队伍数：{{ project.max_teams }}</p>
+  {% endif %}
+  {% if project.opens_at %}<p class="muted">开放时间：{{ project.opens_at }}</p>{% endif %}
+  {% if project.closes_at %}<p class="muted">关闭时间：{{ project.closes_at }}</p>{% endif %}
+
+  <section>
+    <h2>项目描述</h2>
+    <p>{{ project.description or "（无描述）" }}</p>
+  </section>
+
+  {% if is_owner %}
+  <section>
+    <h2>操作</h2>
+    {% if project.status == "draft" %}
+    <form method="post" action="/projects/{{ project.id }}/open">
+      <button class="btn btn-primary" type="submit">开放项目</button>
+    </form>
+    {% elif project.status == "open" %}
+    <form method="post" action="/projects/{{ project.id }}/close">
+      <button class="btn btn-primary" type="submit">关闭项目</button>
+    </form>
+    {% else %}
+    <p class="muted">项目已关闭。</p>
     {% endif %}
-    {% if project.opens_at %}<p>开放时间：{{ project.opens_at }}</p>{% endif %}
-    {% if project.closes_at %}<p>关闭时间：{{ project.closes_at }}</p>{% endif %}
+  </section>
+  {% endif %}
 
-    <section>
-      <h2>项目描述</h2>
-      <p>{{ project.description or "（无描述）" }}</p>
-    </section>
-
-    {% if is_owner %}
-    <section>
-      <h2>操作</h2>
-      {% if project.status == "draft" %}
-      <form method="post" action="/projects/{{ project.id }}/open">
-        <button type="submit">开放项目</button>
-      </form>
-      {% elif project.status == "open" %}
-      <form method="post" action="/projects/{{ project.id }}/close">
-        <button type="submit">关闭项目</button>
-      </form>
-      {% else %}
-      <p>项目已关闭。</p>
-      {% endif %}
-    </section>
+  <section>
+    <h2>队伍</h2>
+    {% if can_claim %}
+    <p><a class="btn btn-primary" href="/projects/{{ project.id }}/teams/new">创建队伍并认领</a></p>
     {% endif %}
-
-    <section>
-      <h2>队伍</h2>
-      {% if can_claim %}
-      <p><a href="/projects/{{ project.id }}/teams/new">创建队伍并认领</a></p>
-      {% endif %}
-      {% if teams %}
-      <ul>
-        {% for t in teams %}
-        <li>
-          <a href="/teams/{{ t.id }}">{{ t.name }}</a>
-          {% if is_student and project.status == "open" %}
-          <form method="post" action="/teams/{{ t.id }}/join" style="display:inline">
-            <button type="submit">加入</button>
-          </form>
-          {% endif %}
-        </li>
-        {% endfor %}
-      </ul>
-      {% else %}
-      <p>暂无队伍。</p>
-      {% endif %}
-    </section>
-  </main>
-</body>
-</html>
+    {% if teams %}
+    <ul class="list">
+      {% for t in teams %}
+      <li class="list-row">
+        <a href="/teams/{{ t.id }}">{{ t.name }}</a>
+        {% if is_student and project.status == "open" %}
+        <form method="post" action="/teams/{{ t.id }}/join">
+          <button class="btn btn-secondary btn-sm" type="submit">加入</button>
+        </form>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty">暂无队伍。</p>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}

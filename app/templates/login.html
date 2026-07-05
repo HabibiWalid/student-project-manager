@@ -1,27 +1,21 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>登录 · 学生项目管理系统</title>
-</head>
-<body>
-  <main>
-    <h1>登录</h1>
-    {% if error %}
-    <p role="alert">{{ error }}</p>
-    {% endif %}
-    <form method="post" action="/login">
-      <label>
-        邮箱
-        <input type="email" name="email" autocomplete="username" required>
-      </label>
-      <label>
-        密码
-        <input type="password" name="password" autocomplete="current-password" required>
-      </label>
-      <button type="submit">登录</button>
-    </form>
-  </main>
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}登录 · 学生项目管理系统{% endblock %}
+{% block content %}
+<main class="card">
+  <h1>登录</h1>
+  {% if error %}
+  <p role="alert">{{ error }}</p>
+  {% endif %}
+  <form method="post" action="/login">
+    <label>
+      邮箱
+      <input type="email" name="email" autocomplete="username" required>
+    </label>
+    <label>
+      密码
+      <input type="password" name="password" autocomplete="current-password" required>
+    </label>
+    <button class="btn btn-primary" type="submit">登录</button>
+  </form>
+</main>
+{% endblock %}

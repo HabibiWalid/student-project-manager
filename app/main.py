@@ -17,6 +17,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session, sessionmaker
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -85,6 +86,12 @@ def create_app(
     # Outermost middleware (added last): cap the upload request body before the
     # multipart parser can buffer it.
     app.add_middleware(LimitUploadBodyMiddleware)
+
+    # Read-only static assets (CSS only). This serves ONLY app/static; the
+    # uploads dir is deliberately NOT mounted — user files are served solely
+    # through the authorization-checked download route (see routes/submissions).
+    static_dir = Path(__file__).resolve().parent / "static"
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     app.include_router(auth.router)
     app.include_router(projects.router)

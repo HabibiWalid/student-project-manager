@@ -1,29 +1,24 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>排行榜 · {{ project.title }}</title>
-</head>
-<body>
-  <p><a href="/projects/{{ project.id }}">← 返回项目</a></p>
+{% extends "base.html" %}
+{% block title %}排行榜 · {{ project.title }}{% endblock %}
+{% block content %}
+<p class="back"><a href="/projects/{{ project.id }}">← 返回项目</a></p>
 
-  <main>
-    <h1>排行榜：{{ project.title }}</h1>
-    {% if rows %}
-    <ol>
-      {% for row in rows %}
-      <li>
-        {{ row.name }} — {{ row.total }} 分
-        {% if is_owner %}
-        <a href="/projects/{{ project.id }}/teams/{{ row.id }}/score/new">评分</a>
-        {% endif %}
-      </li>
-      {% endfor %}
-    </ol>
-    {% else %}
-    <p>暂无队伍。</p>
-    {% endif %}
-  </main>
-</body>
-</html>
+<main class="card">
+  <h1>排行榜：{{ project.title }}</h1>
+  {% if rows %}
+  <ol class="board">
+    {% for row in rows %}
+    <li>
+      <span class="board-name">{{ row.name }}</span>
+      <span class="board-score">{{ row.total }} 分</span>
+      {% if is_owner %}
+      <a class="btn btn-secondary btn-sm" href="/projects/{{ project.id }}/teams/{{ row.id }}/score/new">评分</a>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="empty">暂无队伍。</p>
+  {% endif %}
+</main>
+{% endblock %}

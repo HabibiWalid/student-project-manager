@@ -1,34 +1,31 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>项目列表 · 学生项目管理系统</title>
-</head>
-<body>
-  <header>
+{% extends "base.html" %}
+{% block title %}项目列表 · 学生项目管理系统{% endblock %}
+{% block content %}
+<header class="card toolbar">
+  <div>
     <h1>项目列表</h1>
-    <p>你好，{{ user.name }}（{{ "教师" if user.role == "teacher" else "学生" }}）</p>
+    <p class="muted">你好，{{ user.name }}（{{ "教师" if user.role == "teacher" else "学生" }}）</p>
+  </div>
+  <div class="actions">
     {% if user.role == "teacher" %}
-    <p><a href="/projects/new">新建项目</a></p>
+    <a class="btn btn-primary" href="/projects/new">新建项目</a>
     {% endif %}
-    <form method="post" action="/logout"><button type="submit">退出登录</button></form>
-  </header>
+    <form method="post" action="/logout"><button class="btn btn-secondary" type="submit">退出登录</button></form>
+  </div>
+</header>
 
-  <main>
-    {% if projects %}
-    <ul>
-      {% for p in projects %}
-      <li>
-        <a href="/projects/{{ p.id }}">{{ p.title }}</a>
-        —
-        {% if p.status == "draft" %}草稿{% elif p.status == "open" %}开放{% else %}已关闭{% endif %}
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p>暂无项目。</p>
-    {% endif %}
-  </main>
-</body>
-</html>
+<main class="card">
+  {% if projects %}
+  <ul class="list">
+    {% for p in projects %}
+    <li class="list-row">
+      <a href="/projects/{{ p.id }}">{{ p.title }}</a>
+      {% if p.status == "draft" %}<span class="pill pill-draft">草稿</span>{% elif p.status == "open" %}<span class="pill pill-open">开放</span>{% else %}<span class="pill pill-closed">已关闭</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty">暂无项目。</p>
+  {% endif %}
+</main>
+{% endblock %}

@@ -1,26 +1,20 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>新建项目 · 学生项目管理系统</title>
-</head>
-<body>
-  <p><a href="/projects">← 返回项目列表</a></p>
+{% extends "base.html" %}
+{% block title %}新建项目 · 学生项目管理系统{% endblock %}
+{% block content %}
+<p class="back"><a href="/projects">← 返回项目列表</a></p>
 
-  <main>
-    <h1>新建项目</h1>
-    {% if error %}
-    <p role="alert">{{ error }}</p>
-    {% endif %}
-    <form method="post" action="/projects">
-      <label>标题<input type="text" name="title" maxlength="200" required></label>
-      <label>描述<textarea name="description" maxlength="5000"></textarea></label>
-      <label>最大队伍数（可选）<input type="number" name="max_teams" min="1" max="1000"></label>
-      <label>开放时间（可选）<input type="datetime-local" name="opens_at"></label>
-      <label>关闭时间（可选）<input type="datetime-local" name="closes_at"></label>
-      <button type="submit">创建（草稿）</button>
-    </form>
-  </main>
-</body>
-</html>
+<main class="card">
+  <h1>新建项目</h1>
+  {% if error %}
+  <p role="alert">{{ error }}</p>
+  {% endif %}
+  <form method="post" action="/projects">
+    <label>标题<input type="text" name="title" maxlength="200" required></label>
+    <label>描述<textarea name="description" maxlength="5000"></textarea></label>
+    <label>最大队伍数（可选）<input type="number" name="max_teams" min="1" max="1000"></label>
+    <label>开放时间（可选）<input type="datetime-local" name="opens_at"></label>
+    <label>关闭时间（可选）<input type="datetime-local" name="closes_at"></label>
+    <button class="btn btn-primary" type="submit">创建（草稿）</button>
+  </form>
+</main>
+{% endblock %}

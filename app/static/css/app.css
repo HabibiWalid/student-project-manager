@@ -1,0 +1,225 @@
+/* Student Project Management System — light, clean, professional. Visual only. */
+
+:root {
+  --bg: #f4f5f7;
+  --card: #ffffff;
+  --border: #e4e7ec;
+  --text: #1f2933;
+  --muted: #6b7280;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  line-height: 1.55;
+  font-size: 15px;
+}
+
+.container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+
+/* Cards */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Headings */
+h1 { font-size: 1.5rem; font-weight: 650; margin: 0 0 1rem; letter-spacing: -0.01em; }
+h2 { font-size: 1.1rem; font-weight: 600; margin: 0 0 0.75rem; }
+p { margin: 0 0 0.75rem; }
+
+/* Internal sections of a card, separated by a hairline */
+.card > section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+/* Links */
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.back { margin-bottom: 1rem; }
+.back a { color: var(--muted); font-size: 0.9rem; }
+
+.muted { color: var(--muted); }
+.empty { color: var(--muted); font-style: italic; }
+
+/* Toolbar (projects list header) */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.toolbar h1 { margin-bottom: 0.25rem; }
+.actions { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+
+/* Forms — labels stacked above full-width fields */
+form { margin: 0; }
+label {
+  display: block;
+  margin-bottom: 1.1rem;
+  font-weight: 500;
+  color: var(--text);
+}
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="datetime-local"],
+input[type="file"],
+textarea,
+select {
+  display: block;
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+textarea { min-height: 96px; resize: vertical; }
+input[type="file"] { padding: 0.45rem 0.6rem; background: #fafbfc; }
+
+/* Buttons */
+.btn,
+button {
+  display: inline-block;
+  font: inherit;
+  font-weight: 550;
+  line-height: 1.4;
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+}
+.btn-primary,
+button[type="submit"]:not(.btn-secondary) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover,
+button[type="submit"]:not(.btn-secondary):hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  text-decoration: none;
+}
+.btn-secondary {
+  background: #fff;
+  color: var(--text);
+  border-color: var(--border);
+}
+.btn-secondary:hover { background: #f9fafb; text-decoration: none; }
+.btn-sm { padding: 0.3rem 0.7rem; font-size: 0.85rem; }
+a.btn:hover { text-decoration: none; }
+
+/* Lists */
+.list { list-style: none; margin: 0; padding: 0; }
+.list > li {
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.list > li:last-child { border-bottom: none; }
+.list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+/* Nested file list inside a submission */
+.files { list-style: none; margin: 0.4rem 0 0; padding: 0 0 0 0.25rem; }
+.files > li { padding: 0.2rem 0; font-size: 0.92rem; color: var(--muted); }
+.files > li a { color: var(--accent); }
+
+/* Leaderboard with rank badges */
+.board { list-style: none; counter-reset: rank; margin: 0; padding: 0; }
+.board > li {
+  counter-increment: rank;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.board > li:last-child { border-bottom: none; }
+.board > li::before {
+  content: counter(rank);
+  flex: 0 0 auto;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef2ff;
+  color: var(--accent);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+.board .board-name { flex: 1 1 auto; }
+.board .board-score { font-weight: 600; }
+
+/* Status pills */
+.pill {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.pill-draft { background: #fef3c7; color: #92400e; }
+.pill-open { background: #dcfce7; color: #166534; }
+.pill-closed { background: #eef1f4; color: #64748b; }
+
+/* Error / alert banner */
+[role="alert"] {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+}
+
+/* Responsive: single column, full-width primary actions on small screens */
+@media (max-width: 520px) {
+  .container { padding: 1.25rem 0.85rem 2rem; }
+  .card { padding: 1.25rem 1.1rem; }
+  .toolbar { flex-direction: column; }
+  .actions { width: 100%; }
+  .btn:not(.btn-sm),
+  button[type="submit"]:not(.btn-sm) { width: 100%; }
+}
